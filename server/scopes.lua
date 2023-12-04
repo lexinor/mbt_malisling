@@ -31,17 +31,35 @@ local function removePlayerFromPlayerScope(player, playerToRemove)
     local playerSource = tonumber(player)
     local playerToRemoveSource = tonumber(playerToRemove)
 
-    TriggerClientEvent("mbt_malisling:stopWaitingForPlayer", playerSource, playerToRemoveSource)
+    if scopes[player] then
+        TriggerClientEvent("mbt_malisling:stopWaitingForPlayer", playerSource, playerToRemoveSource)
+    end
 
-    local isContaining, index = utils.containsValue(scopes[player], playerToRemoveSource)
-    if isContaining then
-        table.remove(scopes[player], index)
+    if scopes[player] then
+        local isContaining, index = utils.containsValue(scopes[player], playerToRemoveSource)
+        if isContaining then
+            table.remove(scopes[player], index)
+        end
     end
-    
-    isContaining, index = utils.containsValue(scopes[playerToRemove], playerSource)
-    if isContaining then
-        table.remove(scopes[playerToRemove], index)
+
+    if scopes[playerToRemove] then
+        local isContaining, index = utils.containsValue(scopes[playerToRemove], playerSource)
+        if isContaining then
+            table.remove(scopes[playerToRemove], index)
+        end
     end
+end
+
+function removePlayerFromScopes(s)
+    for k,v in pairs(scopes) do
+        for i=1, #v do
+            if v[i] == s then
+                table.remove(v, i)
+            end
+        end
+        if k == tostring(s) then scopes[k] = nil end
+    end
+
 end
 
 ---@param data table
@@ -121,14 +139,11 @@ AddEventHandler("playerEnteredScope", function(data)
     end
 
     addPlayerToPlayerScope(player, playerEntering)
-
 end)
 
 AddEventHandler("playerLeftScope", function(data)
     local playerLeaving, player = data["player"], data["for"]
-
     utils.mbtDebugger(("^2%s is leaving %s's scope"):format(playerLeaving, player))
-
     removePlayerFromPlayerScope(playerLeaving, player);
 end)
 
@@ -151,6 +166,7 @@ Citizen.CreateThread(function()
                             tType = values[i].type == "Removed" and "del" or "add",
                             playerSource = tonumber(source),
                             playerJob = getPlayerJob(source),
+                            pedSex = getPlayerSex(source),
                             playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
                         }
                     }
@@ -180,7 +196,6 @@ Citizen.CreateThread(function()
                 utils.mbtDebugger("Execute queue thread ~ Resolved process event ", qElement.args.event, " Promise: ", ps)
                 isBusy = false
             end
-
         end
     end
 end)

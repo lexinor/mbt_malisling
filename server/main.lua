@@ -30,8 +30,6 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
     end
 end)
 
-
-
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
     utils.mbtDebugger("getWeapoConf ~  Source ", source, " requested callback!")
     -- utils.mbtDebugger(MBT.WeaponsInfo)
@@ -67,6 +65,7 @@ local function dropPlayer(s)
         { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
     TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
     playersToTrack[s] = nil
+    removePlayerFromScopes(s)
 end
 
 ---Coarse way to manipulate the equip/disarm of ox_inventory, not optimal, ugly as hell but it works
@@ -85,15 +84,16 @@ local function appendMalisling()
     end
 
     local rs = [=[
-Weapon.Equip = function(item, data)
+function Weapon.Equip(item, data)
     local playerPed = cache.ped
+    local coords = GetEntityCoords(playerPed, true)
+    local sleep
 
 	if client.weaponanims then
 		if cache.vehicle and vehicleIsCycle(cache.vehicle) then
 			goto skipAnim
 		end
 
-		local coords = GetEntityCoords(playerPed, true)
 		local anim = data.anim or anims[GetWeapontypeGroup(data.hash)]
 
 		-- if anim == anims[`GROUP_PISTOL`] and not client.hasGroup(shared.police) then
@@ -101,8 +101,6 @@ Weapon.Equip = function(item, data)
 		-- end
 
         if anim == anims[`GROUP_PISTOL`] or data.type == "side" then
-
-
             if GetConvar('malisling:enable_sling', 'false') == 'true' then
 
                 local watingForHolster = nil
@@ -140,9 +138,9 @@ Weapon.Equip = function(item, data)
             end
         end
 
-		local sleep = anim and anim[3] or 1200
+		sleep = anim and anim[3] or 1200
+        coords = GetEntityCoords(playerPed, true)
 
-		coords = GetEntityCoords(playerPed, true)
 		Utils.PlayAnimAdvanced(sleep, anim and anim[1] or 'reaction@intimidation@1h', anim and anim[2] or 'intro', coords.x, coords.y, coords.z, 0, 0, GetEntityHeading(playerPed), 8.0, 3.0, sleep*2, 50, 0.1)
 	end
 
@@ -184,10 +182,10 @@ Weapon.Equip = function(item, data)
 
 	local ammo = item.metadata.ammo or item.throwable and 1 or 0
 
-	SetPedAmmo(playerPed, data.hash, ammo)
-	SetCurrentPedWeapon(playerPed, data.hash, true)
+    SetCurrentPedWeapon(playerPed, data.hash, true)
 	SetPedCurrentWeaponVisible(playerPed, true, false, false, false)
 	SetWeaponsNoAutoswap(true)
+	SetPedAmmo(playerPed, data.hash, ammo)
 	SetTimeout(0, function() RefillAmmoInstantly(playerPed) end)
 
 	if item.group == `GROUP_PETROLCAN` or item.group == `GROUP_FIREEXTINGUISHER` then
@@ -198,7 +196,7 @@ Weapon.Equip = function(item, data)
 	TriggerEvent('ox_inventory:currentWeapon', item)
 	Utils.ItemNotify({ item, 'ui_equipped' })
 
-	return item
+	return item, sleep
 end
 
 function Weapon.Disarm(currentWeapon, noAnim)
@@ -300,11 +298,19 @@ if isESX then
     end)
 
     getPlayerJob = function (s)
+        s = tonumber(s)
         local xPlayer = FrameworkObj.GetPlayerFromId(s)
-        print("xPlayer of ", s, " is ", xPlayer)
-        print(xPlayer.job.name)
+        if not xPlayer then return "" end
         return xPlayer.job.name
     end
+    
+    getPlayerSex = function (s)
+        s = tonumber(s)
+        local xPlayer = FrameworkObj.GetPlayerFromId(s)
+        if not xPlayer then return "male" end
+        return xPlayer.get("sex") == "m" and "male" or "female"
+    end
+
 elseif isQB then
     FrameworkObj = exports["qb-core"]:GetCoreObject()
     AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
@@ -313,8 +319,17 @@ elseif isQB then
     end)
 
     getPlayerJob = function (s)
+        s = tonumber(s)
         local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
+        if not xPlayer then return "male" end
         return xPlayer.PlayerData.job.name
+    end
+    
+    getPlayerSex = function (s)
+        s = tonumber(s)
+        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
+        if not xPlayer then return "male" end
+        return xPlayer.PlayerData.charinfo.gender == 0 and "male" or "female"
     end
 elseif isOX then
     local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
@@ -325,6 +340,20 @@ elseif isOX then
     AddEventHandler('ox:playerLoaded', function(source, userid, charid)
         playersToTrack[source] = {}
     end)
+
+    getPlayerJob = function (s)
+        s = tonumber(s)
+        local player = Ox.GetPlayer(s)  
+        if not player then return "" end
+        return player.getGroups() and player.getGroups()[1] or "unemployed"
+    end
+
+    getPlayerSex = function (s)
+        s = tonumber(s)
+        local player  = Ox.GetPlayer(s)
+        if not player then return "male" end
+        return player.get("gender")
+    end
 end
 
 appendMalisling()
@@ -358,12 +387,10 @@ end)
 RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
+    if not playersToTrack[_source] then playersToTrack[_source] = {} end
+    for k, v in pairs(data.playerWeapons) do playersToTrack[_source][k] = v end
 
-    data.tPed = source
-    if not playersToTrack[source] then playersToTrack[source] = {} end
-    for k, v in pairs(data.playerWeapons) do playersToTrack[source][k] = v end
-
-    Wait(400)
+    Wait(100)
 
     TriggerScopeEvent({
         event = "mbt_malisling:syncSling",
@@ -372,7 +399,8 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
         payload = {
             type = "add",
             playerSource = _source,
-            playerJob = getPlayerJob(_source),
+            playerJob = getPlayerJob(_source), 
+            pedSex = getPlayerSex(_source), 
             calledBy = "mbt_malisling:syncSling ~ 162",
             playerWeapons = playersToTrack[_source]
         }
