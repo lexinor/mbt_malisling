@@ -36,7 +36,7 @@ MBT.Throw = {
     ["Command"] = "throwWeapon"
 }
 
-MBT.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
+MBT.Bones = { ["Back"] = 24816, ["LHand"] = 36029, ["Torso"] = 24818 }
 
 MBT.HolsterControls = {
     ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT", },
@@ -66,7 +66,7 @@ MBT.Labels = {
         ["type"] = "error",
         ["icon"] = "fa-solid fa-hand-fist",
     },
-    ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
+    ["Holster_Help"] = "[RMOUSE] - Dégainer [BACKSPACE] - Annuler",
 
 }
 
@@ -75,11 +75,11 @@ MBT.PropInfo = {
     ["side"] = {
         ["Bone"] = MBT.Bones["Back"],
         ["Pos"] = { 
-            ["male"] = { ["x"] = -0.15, ["y"] = 0.0, ["z"] = -0.23 }, 
-            ["female"] = { ["x"] = -0.15, ["y"] = 0.0, ["z"] = -0.23 }
+            ["male"] = { ["x"] = -0.1, ["y"] = -0.15, ["z"] = -0.1 }, 
+            ["female"] = { ["x"] = -0.15, ["y"] = -0.20, ["z"] = 0.0 }
         },
         ["Rot"] = { 
-            ["male"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 },
+            ["male"] = { ["x"] = 0.0,  ["y"] = -180.0, ["z"] = 0.0 },
             ["female"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 }
         },
         ["isPed"] = false,
@@ -92,7 +92,6 @@ MBT.PropInfo = {
             ["sleep"] = 400,
             ["sleepOut"] = 450
         }
-
     },
     ["back"] = {
         ["Bone"] = MBT.Bones["Back"],
@@ -124,6 +123,27 @@ MBT.PropInfo = {
         ["Rot"] = { 
             ["male"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
             ["female"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
+        },
+        ["isPed"] = false,
+        ["RotOrder"] = 2,
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "reaction@intimidation@1h",
+            ["animIn"] = "intro",
+            ["animOut"] = "outro",
+            ["sleep"] = 1200,
+            ["sleepOut"] = 1200
+        }
+    },
+    ["front"] = {
+        ["Bone"] = MBT.Bones["Torso"],
+        ["Pos"] = { 
+            ["male"] = { ["x"] = 0.05, ["y"] = 0.20, ["z"] = 0.1 },
+            ["female"] = { ["x"] = 0.05, ["y"] = 0.25, ["z"] = 0.1 },
+        },
+        ["Rot"] = { 
+            ["male"] = { ["x"] = -175.81037849286, ["y"] = -30.648492455487, ["z"] = -180.85479130239 },
+            ["female"] = { ["x"] = -175.81037849286, ["y"] = -30.648492455487, ["z"] = -180.85479130239 },
         },
         ["isPed"] = false,
         ["RotOrder"] = 2,
